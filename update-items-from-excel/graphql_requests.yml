@@ -1,0 +1,30 @@
+read_item_query: '
+query ReadItem($ref: ItemReference!) {
+        item(ref: $ref) {
+            id
+            type
+            key
+            name
+            completion
+            description {
+                content
+            }
+            lastCatalogMetadataUpdate
+            property(ref:"domain")
+        }
+    }
+'
+
+update_item_mutation: '
+mutation UpdateItem($input: UpdateItemInput!) {
+  updateItem(input: $input) {
+    clientMutationId
+    item {
+      id
+      type
+      key
+      name
+    }
+  }
+}
+'
