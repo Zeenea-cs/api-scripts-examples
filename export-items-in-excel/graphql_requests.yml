@@ -1,0 +1,26 @@
+get_items_query: '
+    query Items(
+      $type: ItemType!,
+      $filters: [ItemFilterInput!],
+      $after: String,
+      $first: Int
+    ) {
+      items(
+        type: $type,
+        filters: $filters,
+        after: $after,
+        first: $first
+      ) {
+        nodes {
+          key
+          name
+          domain: property(ref:"domain")
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        totalCount
+      }
+    }
+'
