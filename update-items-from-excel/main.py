@@ -45,7 +45,7 @@ def main(zeenea_tenant, zeenea_app_id, zeenea_api_key):
             # Forge the parameters used to update the item
             args = {"input": {"ref": key, "updates":  {"description": {"content": desc}, "properties": [{"command": "REPLACE","ref": "domain","value": domain_prop}]}}}
 
-            # Update
+            # Then update
             item = graphql.request(client, update_item_mutation, args)
             if item is None:
                 print("Item {} wasn't updated".format(key))
