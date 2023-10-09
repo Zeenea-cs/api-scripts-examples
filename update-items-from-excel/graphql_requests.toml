@@ -1,4 +1,5 @@
-read_item_query: '
+[graphql]
+read_item_query = '''
 query ReadItem($ref: ItemReference!) {
         item(ref: $ref) {
             id
@@ -13,9 +14,9 @@ query ReadItem($ref: ItemReference!) {
             property(ref:"domain")
         }
     }
-'
+'''
 
-update_item_mutation: '
+update_item_mutation = '''
 mutation UpdateItem($input: UpdateItemInput!) {
   updateItem(input: $input) {
     clientMutationId
@@ -27,4 +28,4 @@ mutation UpdateItem($input: UpdateItemInput!) {
     }
   }
 }
-'
+'''

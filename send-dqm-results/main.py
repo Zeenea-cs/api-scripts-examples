@@ -1,16 +1,17 @@
 import sys, getopt
 import pandas as pd
+from config import settings
 
 import graphql
 
-def main(zeenea_tenant, zeenea_app_id, zeenea_api_key):
+def main():
 
-    url = "https://{}.zeenea.app/api/catalog/graphql".format(zeenea_tenant)
+    url = "{}/api/catalog/graphql".format(settings.tenant_address)
 
     headers = {
         "Content-Type": "application/json; charset=utf-8",
-        "X-APP-ID": zeenea_app_id,
-        "X-API-KEY": zeenea_api_key
+        "X-APP-ID": settings.app_id,
+        "X-API-KEY": settings.api_key
     }
 
     client = graphql.client(url=url, headers=headers)
@@ -63,19 +64,4 @@ def main(zeenea_tenant, zeenea_app_id, zeenea_api_key):
 
 
 if __name__ == "__main__":
-    argv = sys.argv[1:]
-    opts, args = getopt.getopt(argv, "e:a:k:", ["env=", "appid=", "apikey="])
-
-    zeenea_env = ""
-    zeenea_app_id = ""
-    zeenea_api_key = ""
-
-    for opt, arg in opts:
-        if opt in ("-e", "--env"):
-            zeenea_env = arg
-        elif opt in ("-a", "--appid"):
-            zeenea_app_id = arg
-        elif opt in ("-k", "--apikey"):
-            zeenea_api_key = arg
-
-    main(zeenea_env, zeenea_app_id, zeenea_api_key)
+    main()

@@ -17,8 +17,10 @@ How to execute the script
 
 3. Install the dependencies
 
-```pip install pandas httpx yaml```
+```pip install pandas httpx dynaconf```
 
-1. Run the program
+4. Edit your settings.toml and .secrets.toml files
 
-```python main.py [maybe_some_args...]```
+5. Then, run the program
+
+```python main.py```

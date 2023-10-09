@@ -1,4 +1,5 @@
-update_dq_statement_mutation: '
+[graphql]
+update_dq_statement_mutation = '''
 mutation UpdateDataQualityStatement(
   $ref: ItemReference!,
   $quality: DataQualityStatementInput!
@@ -27,5 +28,4 @@ mutation UpdateDataQualityStatement(
       }
     }
   }
-
-'
+'''

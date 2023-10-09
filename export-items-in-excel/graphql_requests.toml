@@ -1,4 +1,5 @@
-get_items_query: '
+[graphql]
+get_items_query = '''
     query Items(
       $type: ItemType!,
       $filters: [ItemFilterInput!],
@@ -23,4 +24,4 @@ get_items_query: '
         totalCount
       }
     }
-'
+'''
