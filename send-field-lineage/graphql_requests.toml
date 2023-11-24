@@ -1,0 +1,17 @@
+[graphql]
+update_operations_mutation = '''
+mutation UpdateField2FieldOperationsStatement(
+  $ref: ItemReference!,
+  $operations: [DataProcessOperationInput!]!
+) {
+  updateDataProcessOperations(
+    ref: $ref,
+    operations: $operations
+  ) {
+      id
+      type
+      key
+      name
+    }
+  }
+'''

@@ -1,0 +1,51 @@
+{
+    "dataprocesses": [
+        {
+            "key" : "dataprocess/newsletter_dataprep_job",
+            "operations" : [
+                {
+                    "description": "Count non null values",
+                    "input_fields":[
+                        "connection_name_a/schema_1/dataset_A/field_12"
+                    ],
+                    "output_fields":[
+                        "connection_name_b/schema_2/dataset_Z/field_12_non_null_value"
+                    ]
+                },
+                {
+                    "description": "Aggregate two strings into a single one",
+                    "input_fields":[
+                        "connection_name_a/schema_1/dataset_A/field_1", "connection_name_a/schema_1/dataset_A/field_1"
+                    ],
+                    "output_fields":[
+                        "connection_name_a/schema_1/dataset_A2/field_1_2"
+                    ]
+                }
+            ] 
+        },
+        {
+            "key" : "dataprocess/dashboard_data_aggregation_job",
+            "operations" : [
+                {
+                    "description": "Add specific taxes",
+                    "input_fields":[
+                        "connection_name_a/schema_1/dataset_A/amount1", "connection_name_a/schema_1/dataset_A/product_nature"
+                    ],
+                    "output_fields":[
+                        "connection_name_a/schema_1/dataset_A/amount_with_taxes"
+                    ]
+                },
+                {
+                    "description": "Apply specific discount",
+                    "input_fields":[
+                        "connection_name_a/schema_1/dataset_A/purchase_code", "connection_name_a/schema_1/dataset_B/total_orders", "connection_name_a/schema_1/dataset_C/order_total_amount"
+                    ],
+                    "output_fields":[
+                        "connection_name_a/schema_1/dataset_C/discounted_amount"
+                    ]
+                }
+            ] 
+        }
+
+    ]
+}
