@@ -1,7 +1,7 @@
 Description
 ===========
 
-A simple script to illustrate how to inject DQM resultats for Zeenea datasets from an external source (CSV file here)
+A simple script to illustrate how to inject DQM results for Zeenea datasets from an external source (CSV file here)
 
 
 How to execute the script
