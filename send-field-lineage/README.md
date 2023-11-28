@@ -4,7 +4,6 @@ Description
 A simple script to illustrate how to inject Field to Field lineage from an external source (JSON file here).
 This JSON file can be generated based on your transformation jobs, or provided by your data engineer as a description of their implementations
 
-
 How to execute the script
 =========================
 
