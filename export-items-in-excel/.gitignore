@@ -1,5 +1,0 @@
-
-# Ignore dynaconf secret files
-.secrets.*
-
-datasets.xlsx

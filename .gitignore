@@ -1,5 +1,16 @@
+# Ignore dynaconf secret files
+.secrets.toml
+settings.toml
+output/
+
+# Python environment
+venv/
 .venv/
 __pycache__/
+
+# Mac OS X
 .DS_Store
+
+# Intellij Idea
 /.idea/
 *.iml

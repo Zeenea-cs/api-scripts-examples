@@ -1,7 +1,0 @@
-dataset;originator;trust_score;dashboard_link;check_name;check_family;check_description;check_result;check_lastexec;check_link
-"connectionA/schema10/tableA";"MyDQM";0.78;"https://dqm.com";"NotNull";"FamilyA";"Not null default check";"PASS";"2023-09-18T00:00:00.000Z";"https://dqm.com/check1/"
-"connectionA/schema10/tableA";"MyDQM";0.78;"https://dqm.com";"MoreThanX";"FamilyB";"More than threshold X";"PASS";"2023-09-18T00:00:00.000Z";"https://dqm.com/check2/"
-"connectionA/schema10/tableA";"MyDQM";0.78;"https://dqm.com";"LessThanX";"FamilyB";"Less than threshold X";"PASS";"2023-09-18T00:00:00.000Z";"https://dqm.com/check3/"
-"connectionA/schema10/tableB";"MyDQM";0.7;"https://dqm.com";"NotNull";"FamilyA";"Not null default check";"PASS";"2023-09-18T00:00:00.000Z";"https://dqm.com/check1/"
-"connectionA/schema10/tableB";"MyDQM";0.7;"https://dqm.com";"MoreThanX";"FamilyB";"More than threshold X";"PASS";"2023-09-18T00:00:00.000Z";"https://dqm.com/check2/"
-"connectionA/schema10/tableB";"MyDQM";0.7;"https://dqm.com";"LessThanX";"FamilyB";"Less than threshold X";"PASS";"2023-09-18T00:00:00.000Z";"https://dqm.com/check3/"
