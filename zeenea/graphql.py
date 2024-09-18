@@ -79,8 +79,8 @@ class GqlError:
     def __str__(self):
         """Make a """
         locations = f"\n\tlocations: {', '.join(map(str, self.locations))}" if self.locations else ""
-        other_ext = [f"{k}: {v}" for k, v in self.extensions if not k == 'code'] if self.extensions else []
-        extra = f"\n\textensions:\n{textwrap.indent("\n".join(other_ext), '\t')}" if other_ext else ""
+        other_ext = [f"{k}: {v}" for k, v in self.extensions.items() if not k == 'code'] if self.extensions else []
+        extra = f"\n\textensions:\n{textwrap.indent("\n".join(other_ext), '\t\t')}" if other_ext else ""
         return f"{self.code or 'ERROR'}: {self.message}{locations}{extra}"
 
     def __repr__(self):

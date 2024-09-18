@@ -2,6 +2,7 @@
 .secrets.toml
 settings.toml
 output/
+local/
 
 # Python environment
 venv/

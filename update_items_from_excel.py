@@ -10,7 +10,8 @@ from zeenea.graphql import ZeeneaGraphQLClient
 UPDATE_ITEM_MUTATION = '''
 mutation update_description_and_domain(
     $ref: ItemReference!, 
-    $description: String!, 
+    $description: String!,
+    $descType: ContentType!,
     $domain: PropertyValue
 ) {
     updateItem(input: {
@@ -19,11 +20,12 @@ mutation update_description_and_domain(
             descriptionV3: { 
                 content: { 
                     content: $description,
-                    contentType: RAW 
+                    contentType: $descType 
                 },
                 recomputeSummary: true 
             },
-            properties: [{ command: REPLACE, ref: "domain", value: $domain }]  
+            properties: [{ command: REPLACE, ref: "domain", value: $domain }]
+        }  
     }) {
         item {
             key
@@ -49,18 +51,25 @@ def main():
     # For each line from the Excel file, collect metadata to update an item.
     for row_idx, row in data:
         # Get the key (unique identifier for Zeenea)
-        key = row["key"]
-        desc = row.get("description", "")
-        domain = row.get("domain")
+        key = row['key']
+        domain = [ row['domain'] ] if 'domain' in row else []
+        desc = row.get('description', '')
+        desc_type = row.get('description type', 'RAW').upper()
+        if desc_type not in ['RAW', 'HTML']:
+            print(f"Item '{key}' (line {row_idx}) has invalid description type '{desc_type}'")
 
         # Then update.
-        response = client.request(UPDATE_ITEM_MUTATION, ref=key, description=desc, domain=domain)
+        response = client.request(UPDATE_ITEM_MUTATION, ref=key, descType=desc_type, description=desc, domain=domain)
+
+        # Process the errors
         if response.has_error('ITEM_NOT_FOUND', unique=True):
             print(f"Item '{key}' (line {row_idx}) not found")
         elif response.has_errors():
-            print(f"Item '{key}' (line {row_idx}) errors\n" + textwrap.indent(str(response.errors), '\t'), file=sys.stderr)
+            print(f"Item '{key}' (line {row_idx}) errors\n" + textwrap.indent(str(response.errors), '\t'),
+                  file=sys.stderr)
+
+        # Test is the result matches the new values.
         if response.data:
-            # Test is the result matches the new values.
             new_item = response.data['updateItem']['item']
             if desc != new_item['descriptionV2']['content']['content']:
                 print(f"Item '{key}' (line {row_idx}) the description was not updated")

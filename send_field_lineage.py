@@ -14,7 +14,11 @@ mutation update_field_2_field_operations(
     $ref: ItemReference!,
     $operations: [DataProcessOperationInput!]!
 ) {
-    updateDataProcessOperationsV2(clientMutationId: $mutation_id, ref: $ref, operations: $operations) {
+    updateDataProcessOperationsV2(input: {
+        clientMutationId: $mutation_id, 
+        ref: $ref, 
+        operations: $operations
+    }) {
         clientMutationId
    }
 }
@@ -57,16 +61,22 @@ def main():
             # Call the update request and check the result
             response = client.request(UPDATE_OPERATIONS_MUTATION, mutation_id=mutation_id, ref=key,
                                       operations=operations)
-            if response.has_error('ITEM_NOT_FOUND', unique=True):
-                print(f"Item '{key}' not found")
-            elif response.has_errors():
-                print(f"Item '{key}'\n" + textwrap.indent(str(response.errors), '\t'), file=sys.stderr)
+
+            # Test mutation_id consistency
             if response.data:
-                # Test mutation_id consistency
                 response_mutation_id = response.data['updateDataProcessOperationsV2']['clientMutationId']
                 if response_mutation_id != mutation_id:
                     print(f"ERROR inconsistent client mutation id: got {response_mutation_id}, expected {mutation_id}",
                           file=sys.stderr)
+                continue
+
+            # Process errors
+            if response.has_error('ITEM_NOT_FOUND', unique=True):
+                print(f"Item '{key}' not found")
+            elif response.has_errors():
+                print(f"Item '{key}'\n" + textwrap.indent(str(response.errors), '\t'))
+            else:
+                print(f"Item '{key}' updated")
 
 
 def read_json_file(input_file):
