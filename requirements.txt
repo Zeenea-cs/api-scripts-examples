@@ -2,3 +2,5 @@ httpx
 dynaconf
 openpyxl
 pandas
+questionary
+tomlkit

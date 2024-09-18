@@ -25,7 +25,9 @@ To set up the project:
 3. Create a virtual environment with venv.
 4. Activate the new virtual environment.
 5. Install the dependencies listed in _requirements.txt_.
-6. Edit settings.toml and .secrets.toml files.
+6. Prepare the settings. You have two options to do this: 
+   1. Edit settings.toml and .secrets.toml files.
+   2. Use the zeenea.config module to guide you in the settings. 
 7. Your environment is ready you can run the examples.
 
 Scripts have been tested with Python 3.12.
@@ -37,6 +39,7 @@ Windows commands
 > py -m venv venv
 > venv/Sccipts/activate
 > py -m pip install -r requirements.txt
+> py -m zeenea.config
 ```
 
 Unix/Linux commands
@@ -46,6 +49,45 @@ Unix/Linux commands
 $ python3 -m venv venv
 $ source .venv/bin/activate
 $ pip install -r requirements.txt
+$ python -m zeenea.config
+```
+
+Prepare settings
+----------------
+
+In order to make easier to prepare the settings, we provided you with a small command line tool. 
+You can call it with a simple command:
+
+### On Windows
+```
+❯ py -m zeenea.config
+```
+
+### On Linux
+```
+$ python -m zeenea.config
+```
+
+### Example
+
+```
+$ python -m zeenea.config
+? Zeenea tenant: acme
+? Zeenea API Secret: **************************************
+? Which example do you want to try ? (Use arrow keys to move, <space> to select, <a> to toggle, <i> to invert)
+ » ● export_items_in_excel.py
+   ● update_items_from_excel.py
+   ● send_field_lineage.py
+   ● send_dqm_results.py
+* Options for export_items_in_excel.py
+? Excel output file: output/datasets.xlsx
+? Export page size:
+* Options for update_items_from_excel.py
+? Excel input file: input/datasets.xlsx
+* Options for send_field_lineage.py
+? Lineage input file: input/lineage.json
+* Options for send_dqm_results.py
+? DQM input file: input/dqm-results.csv
 ```
 
 Run a script
