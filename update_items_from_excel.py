@@ -58,8 +58,7 @@ def main():
         if response.has_error('ITEM_NOT_FOUND', unique=True):
             print(f"Item '{key}' (line {row_idx}) not found")
         elif response.has_errors():
-            print()
-            print(f"Item '{key}' (line {row_idx})\n" + textwrap.indent(str(response.errors), '\t'), file=sys.stderr)
+            print(f"Item '{key}' (line {row_idx}) errors\n" + textwrap.indent(str(response.errors), '\t'), file=sys.stderr)
         if response.data:
             # Test is the result matches the new values.
             new_item = response.data['updateItem']['item']
