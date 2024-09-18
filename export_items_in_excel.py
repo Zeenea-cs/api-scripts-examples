@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+#
+# This work is marked with CC0 1.0 Universal.
+# To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
+
 import sys
 
 import pandas as pd
@@ -67,7 +71,7 @@ def main():
         # Fetch the other pages as long as there are more.
         while next_cursor:
             response = client.request(FIND_DATASETS_QUERY, filters=filters, page_size=page_size, after=next_cursor)
-            if page:= read_page(response):
+            if page := read_page(response):
                 item_list += page.content
                 next_cursor = page.next_cursor
             else:

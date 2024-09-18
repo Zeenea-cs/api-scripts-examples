@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+#
+# This work is marked with CC0 1.0 Universal.
+# To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
+
 import sys
 import textwrap
 
@@ -52,7 +56,7 @@ def main():
     for row_idx, row in data:
         # Get the key (unique identifier for Zeenea)
         key = row['key']
-        domain = [ row['domain'] ] if 'domain' in row else []
+        domain = [row['domain']] if 'domain' in row else []
         desc = row.get('description', '')
         desc_type = row.get('description type', 'RAW').upper()
         if desc_type not in ['RAW', 'HTML']:

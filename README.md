@@ -25,9 +25,9 @@ To set up the project:
 3. Create a virtual environment with venv.
 4. Activate the new virtual environment.
 5. Install the dependencies listed in _requirements.txt_.
-6. Prepare the settings. You have two options to do this: 
-   1. Edit settings.toml and .secrets.toml files.
-   2. Use the zeenea.config module to guide you in the settings. 
+6. Prepare the settings. You have two options to do this:
+    1. Edit settings.toml and .secrets.toml files.
+    2. Use the `zeenea.setup` wizard to guide you in the settings.
 7. Your environment is ready you can run the examples.
 
 Scripts have been tested with Python 3.12.
@@ -39,7 +39,7 @@ Windows commands
 > py -m venv venv
 > venv/Sccipts/activate
 > py -m pip install -r requirements.txt
-> py -m zeenea.config
+> py -m zeenea.setup
 ```
 
 Unix/Linux commands
@@ -49,29 +49,33 @@ Unix/Linux commands
 $ python3 -m venv venv
 $ source .venv/bin/activate
 $ pip install -r requirements.txt
-$ python -m zeenea.config
+$ python -m zeenea.setup
 ```
 
 Prepare settings
 ----------------
 
-In order to make easier to prepare the settings, we provided you with a small command line tool. 
+In order to make easier to prepare the settings, we provided you with a small command line tool.
+The wizard can be used several times without losing the existing settings.
+
 You can call it with a simple command:
 
 ### On Windows
+
 ```
-❯ py -m zeenea.config
+❯ py -m zeenea.setup
 ```
 
 ### On Linux
+
 ```
-$ python -m zeenea.config
+$ python -m zeenea.setup
 ```
 
 ### Example
 
 ```
-$ python -m zeenea.config
+$ python -m zeenea.setup
 ? Zeenea tenant: acme
 ? Zeenea API Secret: **************************************
 ? Which example do you want to try ? (Use arrow keys to move, <space> to select, <a> to toggle, <i> to invert)
@@ -167,7 +171,38 @@ any intermediate file format depending on your context.
 * dynaconf: Configuration.
 * httpx: HTTP request.
 
+Modules
+=======
+
+The example files use common modules in the zeenea package for common technical code.
+You can look at these modules, reuse them.
+However, there are provided as examples and Zeenea provides no guaranty or support about them.
+
+zeenea.config
+-------------
+
+This module use dynaconf to load the documentation from setting files and environment variables.
+
+See the `read_configuration` method for an example.
+
+If you want to use dynaconf for your own project, read their [documentation](https://www.dynaconf.com/).
+
+zeenea.graphql
+--------------
+
+This module provides a small client to make easier to use the Zeenea GraphQL API.
+It's mostly a wrapper around httpx.
+Another valid solution would be to use a GraphQL client library.
+
+The entry point of the module is the `ZeeneaGraphQLClient` class.
+
+zeenea.tool
+-----------
+
+For now, it just provides `create_parent`: a function to create the parent folders of an output file if required.
+
+
+
 License
 =======
-All assets and code are under the [CC0 LICENSE](./LICENSE) and in the public domain unless specified
-otherwise.
+All assets and code are under the [CC0 LICENSE](./LICENSE) and in the public domain unless specified otherwise.
