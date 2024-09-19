@@ -47,38 +47,37 @@ def main():
     excel_file = config.get('excel_input_file', 'input/datasets.xlsx')
 
     # Create ZeeneaGraphQLClient.
-    client = ZeeneaGraphQLClient(tenant=config.tenant, api_secret=config.api_secret)
+    with ZeeneaGraphQLClient(tenant=config.tenant, api_secret=config.api_secret) as client:
+        # Read data from the Excel file.
+        data = read_from_excel(excel_file)
 
-    # Read data from the Excel file.
-    data = read_from_excel(excel_file)
+        # For each line from the Excel file, collect metadata to update an item.
+        for row_idx, row in data:
+            # Get the key (unique identifier for Zeenea)
+            key = row['key']
+            domain = [row['domain']] if 'domain' in row else []
+            desc = row.get('description', '')
+            desc_type = row.get('description type', 'RAW').upper()
+            if desc_type not in ['RAW', 'HTML']:
+                print(f"Item '{key}' (line {row_idx}) has invalid description type '{desc_type}'")
 
-    # For each line from the Excel file, collect metadata to update an item.
-    for row_idx, row in data:
-        # Get the key (unique identifier for Zeenea)
-        key = row['key']
-        domain = [row['domain']] if 'domain' in row else []
-        desc = row.get('description', '')
-        desc_type = row.get('description type', 'RAW').upper()
-        if desc_type not in ['RAW', 'HTML']:
-            print(f"Item '{key}' (line {row_idx}) has invalid description type '{desc_type}'")
+            # Then update.
+            response = client.request(UPDATE_ITEM_MUTATION, ref=key, descType=desc_type, description=desc, domain=domain)
 
-        # Then update.
-        response = client.request(UPDATE_ITEM_MUTATION, ref=key, descType=desc_type, description=desc, domain=domain)
+            # Process the errors
+            if response.has_error('ITEM_NOT_FOUND', unique=True):
+                print(f"Item '{key}' (line {row_idx}) not found")
+            elif response.has_errors():
+                print(f"Item '{key}' (line {row_idx}) errors\n" + textwrap.indent(str(response.errors), '\t'),
+                      file=sys.stderr)
 
-        # Process the errors
-        if response.has_error('ITEM_NOT_FOUND', unique=True):
-            print(f"Item '{key}' (line {row_idx}) not found")
-        elif response.has_errors():
-            print(f"Item '{key}' (line {row_idx}) errors\n" + textwrap.indent(str(response.errors), '\t'),
-                  file=sys.stderr)
-
-        # Test is the result matches the new values.
-        if response.data:
-            new_item = response.data['updateItem']['item']
-            if desc != new_item['descriptionV2']['content']['content']:
-                print(f"Item '{key}' (line {row_idx}) the description was not updated")
-            if domain != new_item['domain']:
-                print(f"Item '{key}' (line {row_idx}) the domain was not updated")
+            # Test is the result matches the new values.
+            if response.data:
+                new_item = response.data['updateItem']['item']
+                if desc != new_item['descriptionV2']['content']['content']:
+                    print(f"Item '{key}' (line {row_idx}) the description was not updated")
+                if domain != new_item['domain']:
+                    print(f"Item '{key}' (line {row_idx}) the domain was not updated")
 
 
 def read_from_excel(excel_file: str):

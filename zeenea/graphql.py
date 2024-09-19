@@ -3,7 +3,9 @@
 
 import re
 import textwrap
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
+from types import TracebackType
+from typing import Self
 
 import httpx
 
@@ -65,7 +67,7 @@ class GqlError:
     extensions: the list of extensions.
     """
 
-    def __init__(self, json: dict):
+    def __init__(self, json: dict) -> None:
         """
         Construct a new GqlError.
         :param json: The json from the graphql response.
@@ -79,30 +81,30 @@ class GqlError:
         self.extensions = json.get("extensions")
         self.code = self.extensions.get("code") if self.extensions else None
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Make a """
         locations = f"\n\tlocations: {', '.join(map(str, self.locations))}" if self.locations else ""
         other_ext = [f"{k}: {v}" for k, v in self.extensions.items() if not k == 'code'] if self.extensions else []
         extra = f"\n\textensions:\n{textwrap.indent("\n".join(other_ext), '\t\t')}" if other_ext else ""
         return f"{self.code or 'ERROR'}: {self.message}{locations}{extra}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"GqlError({self.message=})"
 
 
 class GqlErrorList:
     """A list of errors. The main purpose of this object is to manage the string representation of the list."""
 
-    def __init__(self, errors: Iterable[GqlError]):
+    def __init__(self, errors: Iterable[GqlError]) -> None:
         self.errors = list(errors)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{len(self.errors)} errors:\n{textwrap.indent("\n".join(map(str, self.errors)), '\t')}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"GqlErrorList({len(self.errors)})[{repr(self.errors)}]"
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[GqlError]:
         return iter(self.errors)
 
 
@@ -172,7 +174,7 @@ class ZeeneaGraphQLClient:
     >>> response = client.request('query my_query($ref: Ref, $count: Int) {...}', ref="item_ref", count=10)
     """
 
-    def __init__(self, tenant: str, api_secret: str):
+    def __init__(self, *, tenant: str, api_secret: str):
         if not re.match('^https?://', tenant):
             url = f"https://{tenant}.zeenea.app/api/catalog/graphql"
         else:
@@ -204,6 +206,21 @@ class ZeeneaGraphQLClient:
             return GqlResponse(response.json())
         else:
             raise httpx.RequestError(f"{response.status_code=}, {response.json()=}")
+
+    def close(self):
+        """Close the internal https client."""
+        self._client.close()
+
+    def __enter__(self) -> Self:
+        self._client.__enter__()
+        return self
+
+    def __exit__(self,
+                 exc_type: type[BaseException] | None = None,
+                 exc_val: BaseException | None = None,
+                 exc_tb: TracebackType | None = None,
+                 ) -> None:
+        self._client.__exit__(exc_type, exc_val, exc_tb)
 
 
 def end_cursor(page_info: dict) -> str | None:

@@ -47,40 +47,39 @@ def main():
     page_size = config.get('page_size', 2)
 
     # Create ZeeneaGraphQLClient.
-    client = ZeeneaGraphQLClient(tenant=config.tenant, api_secret=config.api_secret)
-
-    # Prepare query variable for the first page.
-    filters = [
-        {
-            "property": {
-                "ref": "domain",
-                "isEmpty": False
+    with ZeeneaGraphQLClient(tenant=config.tenant, api_secret=config.api_secret) as client:
+        # Prepare query variable for the first page.
+        filters = [
+            {
+                "property": {
+                    "ref": "domain",
+                    "isEmpty": False
+                }
             }
-        }
-    ]
+        ]
 
-    # Request the first page.
-    response = client.request(FIND_DATASETS_QUERY, filters=filters, page_size=page_size)
+        # Request the first page.
+        response = client.request(FIND_DATASETS_QUERY, filters=filters, page_size=page_size)
 
-    # Read the page.
-    if page := read_page(response):
-        print(f"{page.total_items} items found... Processing them.")
-        item_list = page.content
-        next_cursor = page.next_cursor
+        # Read the page.
+        if page := read_page(response):
+            print(f"{page.total_items} items found... Processing them.")
+            item_list = page.content
+            next_cursor = page.next_cursor
 
-        # Fetch the other pages as long as there are more.
-        while next_cursor:
-            response = client.request(FIND_DATASETS_QUERY, filters=filters, page_size=page_size, after=next_cursor)
-            if page := read_page(response):
-                item_list += page.content
-                next_cursor = page.next_cursor
-            else:
-                print("No item found in this page")
-                next_cursor = None
+            # Fetch the other pages as long as there are more.
+            while next_cursor:
+                response = client.request(FIND_DATASETS_QUERY, filters=filters, page_size=page_size, after=next_cursor)
+                if page := read_page(response):
+                    item_list += page.content
+                    next_cursor = page.next_cursor
+                else:
+                    print("No item found in this page")
+                    next_cursor = None
 
-        write_to_excel(excel_file, item_list)
-    else:
-        print("No item found")
+            write_to_excel(excel_file, item_list)
+        else:
+            print("No item found")
 
 
 def read_page(response: GqlResponse) -> GqlPage[list[dict]] | None:
