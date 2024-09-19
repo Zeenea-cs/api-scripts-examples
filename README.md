@@ -127,6 +127,7 @@ export_items_in_excel.py
 ------------------------
 
 Export some Zeenea items into an Excel file.
+([Sources](export_items_in_excel.py))
 
 ### Dependencies
 
@@ -139,6 +140,7 @@ update_items_from_excel.py
 --------------------------
 
 Update Zeenea items from an Excel file containing a property and a description.
+([Sources](update_items_from_excel.py))
 
 ### Dependencies
 
@@ -151,6 +153,7 @@ send_dqm_results.py
 -------------------
 
 Inject DQM results for Zeenea datasets from an external source.
+([Sources](send_dqm_results.py))
 
 ### Dependencies
 
@@ -161,6 +164,7 @@ send_field_lineage.py
 ---------------------
 
 Inject Field to Field lineage from an external source.
+([Sources](send_field_lineage.py))
 
 The source here is a sample JSON file _input/lineage.json_.
 In real implementation you will fetch the information directly from the source system using API or
