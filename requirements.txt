@@ -1,5 +1,7 @@
 httpx
 dynaconf
+scim2-models
+scim2-client
 openpyxl
 pandas
 questionary

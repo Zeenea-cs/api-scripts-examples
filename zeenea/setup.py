@@ -12,6 +12,14 @@ import questionary
 import tomlkit
 from tomlkit import TOMLDocument
 
+SCIM_EXAMPLES = ['user.py']
+GRAPHQL_EXAMPLES = [
+    'export_items_in_excel.py',
+    'update_items_from_excel.py',
+    'send_field_lineage.py',
+    'send_dqm_results.py'
+]
+
 
 def main():
     settings = read_toml('settings.toml')
@@ -22,23 +30,14 @@ def main():
     elif 'tenant' in settings:
         del settings['tenant']
 
-    if secrets.get('api_secret'):
-        should_ask_api_secret = questionary.confirm("An API Secret is already defined, do you want to change it?",
-                                                    default=False).ask()
-    else:
-        should_ask_api_secret = True
-    if api_secret := questionary.password("Zeenea API Secret:") \
-        .skip_if(not should_ask_api_secret, default=secrets.get('api_secret') or '').ask():
-        secrets['api_secret'] = api_secret
-    elif 'api_secret' in settings:
-        del settings['api_secret']
+    examples = questionary.checkbox("Which example do you want to try ?",
+                                    choices=GRAPHQL_EXAMPLES + SCIM_EXAMPLES).ask()
 
-    examples = questionary.checkbox("Which example do you want to try ?", choices=[
-        'export_items_in_excel.py',
-        'update_items_from_excel.py',
-        'send_field_lineage.py',
-        'send_dqm_results.py'
-    ]).ask()
+    if any(example in GRAPHQL_EXAMPLES for example in examples):
+        ask_api_secret(secrets, 'api_secret', 'Zeenea', 'Manage documentation')
+
+    if any(example in SCIM_EXAMPLES for example in examples):
+        ask_api_secret(secrets, 'scim_api_secret', 'Scim', 'Admin')
 
     if 'export_items_in_excel.py' in examples:
         questionary.print("* Options for export_items_in_excel.py", "italic")
@@ -70,6 +69,20 @@ def ask_file_path(settings: TOMLDocument, setting_name: str, label: str, default
         settings[setting_name] = path
     elif setting_name in settings:
         del settings[setting_name]
+
+
+def ask_api_secret(secrets: TOMLDocument, p_name: str, p_label: str, scope: str) -> None:
+    if secrets.get(p_name):
+        should_ask_api_secret = questionary.confirm(
+            f"The {p_label} API Secret is already defined, do you want to change it?",
+            default=False).ask()
+    else:
+        should_ask_api_secret = True
+    if api_secret := questionary.password(f"{p_label} API Secret (scope: {scope}):") \
+        .skip_if(not should_ask_api_secret, default=secrets.get(p_name) or '').ask():
+        secrets[p_name] = api_secret
+    elif p_name in secrets:
+        del secrets[p_name]
 
 
 def read_toml(path: str) -> TOMLDocument:
