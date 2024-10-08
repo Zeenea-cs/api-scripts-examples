@@ -4,16 +4,13 @@
 # To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
 
 import argparse
-import re
 import sys
 from argparse import Namespace
-from enum import Enum
 
-import httpx
-from scim2_client import SCIMClient
-from scim2_models import User, Group, Error, Name, SearchRequest, ListResponse, PatchOp, PatchOperation
+from scim2_models import User
 
 from zeenea.config import read_configuration
+from zeenea.scim import ZeeneaScimClient, ScimError, ScimNotFound, ScimTooMany, ZeeneaUser
 
 
 def main() -> None:
@@ -29,148 +26,44 @@ def main() -> None:
 
 
 def create_user(arguments: Namespace) -> None:
-    with open_http_client() as http_client:
-        scim_client: SCIMClient = open_scim_client(http_client)
+    with open_scim_client() as scim_client:
         email: str = arguments.email
-        given_name: str = arguments.given_name
-        family_name: str = arguments.family_name
-        name = Name(given_name=given_name, family_name=family_name) if given_name or family_name else None
-        match scim_client.create(User(user_name=email, name=name), raise_scim_errors=False):
-            case User() as new_user:
-                print(f"Created new user {email} ({new_user.id})")
-                if arguments.groups:
-                    set_groups(new_user.id, GroupCommand.ADD, arguments.group, scim_client)
-            case Error() as e:
-                print(f"Failed to create user {email}: {e.status} {e.detail}", file=sys.stderr)
+        given_name: str = arguments.given_name if 'given_name' in arguments else None
+        family_name: str = arguments.family_name if 'family_name' in arguments else None
+        user = ZeeneaUser(email, given_name=given_name, family_name=family_name)
+        match scim_client.create_user(user):
+            case ZeeneaUser() as new_user:
+                print(f"Created new user {new_user.email} ({new_user.id})")
+                if 'groups' in arguments and arguments.groups:
+                    add_user_to_groups(scim_client, new_user.id, arguments.group)
+            case ScimError() as e:
+                print(e.message, file=sys.stderr)
                 sys.exit(1)
-            case _ as unknown:
-                print(f"Failed to create user {email}: unknown result ({type(unknown)}): {unknown}", file=sys.stderr)
-                sys.exit(2)
 
 
 def delete_user(arguments: Namespace) -> None:
-    with open_http_client() as http_client:
-        scim_client = open_scim_client(http_client)
+    with open_scim_client() as scim_client:
         email = arguments.email
-        user = find_user_by_email(scim_client, email)
-        if user is not None:
-            match scim_client.delete(User, user.id, raise_scim_errors=False):
-                case None:
-                    print(f"Deleted user {email} ({user.id})")
-                case Error(status=404):
-                    print(f"User {email} ({user.id}) not found")
-                case Error() as e:
-                    print(f"Failed to delete user {email} ({user.id}): {e.status} {e.detail}", file=sys.stderr)
-                    sys.exit(1)
+        match scim_client.delete_user(email):
+            case User() as user:
+                print(f"Deleted user {email} ({user.id})")
+            case ScimNotFound() | ScimTooMany() as e:
+                print(e)
+            case ScimError() as e:
+                print(e, file=sys.stderr)
+                sys.exit(1)
 
 
-def find_user_by_email(scim_client: SCIMClient, email: str) -> User | None:
-    match scim_client.query(User, search_request=SearchRequest(filter=f'userName eq "{email}"'),
-                            raise_scim_errors=False):
-        case ListResponse() as response:
-            match response.total_results:
-                case 0:
-                    print(f"User {email} not found")
-                    return None
-                case 1:
-                    if isinstance(response.resources[0], User):
-                        user = response.resources[0]
-                        print(f"Found user {email} ({user.id})")
-                        return user
-                    else:
-                        print(f"Failed to find user {email}: invalid resource type ({type(response.resources[0])})",
-                              file=sys.stderr)
-                        sys.exit(2)
-                case n:
-                    print(f"Failed to find user {email}: too many matching resources: {n}", file=sys.stderr)
-                    sys.exit(3)
-        case Error(status=404):
-            print(f"User {email} not found")
-            return None
-        case Error() as e:
-            print(f"Failed to find user {email}: {e.status} {e.detail}", file=sys.stderr)
-            sys.exit(1)
-        case _ as unknown:
-            print(f"Failed to find user {email}: unknown result ({type(unknown)}): {unknown}", file=sys.stderr)
-            sys.exit(2)
+def add_user_to_groups(client: ZeeneaScimClient, user_id: str, group_list: list[str]):
+    for group_name in group_list:
+        match client.group_add_user(group_name, user_id):
+            case ScimError() as e:
+                print(e, file=sys.stderr)
 
 
-def find_group_by_name(scim_client: SCIMClient, name: str) -> User | None:
-    match scim_client.query(Group, search_request=SearchRequest(filter=f'displayName eq "{name}"'),
-                            raise_scim_errors=False):
-        case ListResponse() as response:
-            match response.total_results:
-                case 0:
-                    print(f"Group {name} not found")
-                    return None
-                case 1:
-                    if isinstance(response.resources[0], Group):
-                        group = response.resources[0]
-                        print(f"Found group {name} ({group.id})")
-                        return group
-                    else:
-                        print(f"Failed to find group {name}: invalid resource type ({type(response.resources[0])})",
-                              file=sys.stderr)
-                        sys.exit(2)
-                case n:
-                    print(f"Failed to find group {name}: too many matching resources: {n}", file=sys.stderr)
-                    sys.exit(3)
-        case Error(status=404):
-            print(f"Group {name} not found")
-            return None
-        case Error() as e:
-            print(f"Failed to find group {name}: {e.status} {e.detail}", file=sys.stderr)
-            sys.exit(1)
-        case _ as unknown:
-            print(f"Failed to find group {name}: unknown result ({type(unknown)}): {unknown}", file=sys.stderr)
-            sys.exit(2)
-
-
-class GroupCommand(Enum):
-    SET: str = 'set'
-    ADD: str = 'add'
-    REMOVE: str = 'remove'
-
-
-def set_groups(user_id: str, command: GroupCommand, groups: list[str], scim_client: SCIMClient) -> None:
-    match command:
-        case GroupCommand.ADD:
-            for group in groups:
-                group_add_user(group, user_id, scim_client)
-
-        case GroupCommand.SET:
-            # TODO remove existing values
-            for group in groups:
-                group_add_user(group, user_id, scim_client)
-
-        case GroupCommand.REMOVE:
-            for group in groups:
-                group_remove_user(group, user_id, scim_client)
-
-
-def group_add_user(groupName: str, user_id: str, scim_client: SCIMClient):
-    group = find_group_by_name(scim_client, groupName)
-    if group:
-        scim_client.modify(Group, PatchOp({'operations': PatchOperation({'op': PatchOperation.Op.add, })}))
-
-
-def group_remove_user(group: str, user_id: str, scim_client: SCIMClient):
-    pass
-
-
-def open_http_client() -> httpx.Client:
+def open_scim_client() -> ZeeneaScimClient:
     settings = read_configuration(['tenant', 'scim_api_secret'])
-    tenant = settings.tenant
-    if not re.match('^https?://', tenant):
-        url = f"https://{tenant}.zeenea.app/api/scim/v2"
-    else:
-        url = f"{tenant}/api/scim/v2"
-    headers = {"Authorization": f"Bearer {settings.scim_api_secret}"}
-    return httpx.Client(base_url=url, headers=headers)
-
-
-def open_scim_client(http_client: httpx.Client) -> SCIMClient:
-    return SCIMClient(http_client, resource_types=(User, Group))
+    return ZeeneaScimClient(tenant=settings.tenant, api_secret=settings.scim_api_secret)
 
 
 def parse_arguments() -> argparse.Namespace:
