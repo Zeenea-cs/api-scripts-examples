@@ -14,6 +14,7 @@ List of the scripts:
   external source.
 * [send_field_lineage.py](#send_field_lineagepy): Inject Field to Field lineage from an external
   source.
+* [user.py](#userpy): A command line tool to create, modify and delete users.
 
 Setup
 =====
@@ -129,6 +130,16 @@ export_items_in_excel.py
 Export some Zeenea items into an Excel file.
 ([Sources](export_items_in_excel.py))
 
+### Configuration
+
+In _settings.toml_:
+* tenant: The tenant name. Example: "acme". For very specific use cases, a URL prefix can be provided.
+* excel_output_file: The path to the Excel output file. The default value is "output/datasets.xlsx".
+* page_size: The size of a page. Default to 20.
+
+In _.secrets.toml_:
+* api_secret: A valid Zeenea API Secret with the scope "Manage documentation".
+
 ### Dependencies
 
 * dynaconf: Configuration.
@@ -142,6 +153,15 @@ update_items_from_excel.py
 Update Zeenea items from an Excel file containing a property and a description.
 ([Sources](update_items_from_excel.py))
 
+### Configuration
+
+In _settings.toml_:
+* tenant: The tenant name. Example: "acme". For very specific use cases, a URL prefix can be provided.
+* excel_input_file: The path to the Excel input file. The default value is "input/datasets.xlsx".
+
+In _.secrets.toml_:
+* api_secret: A valid Zeenea API Secret with the scope "Manage documentation".
+
 ### Dependencies
 
 * dynaconf: Configuration.
@@ -154,6 +174,15 @@ send_dqm_results.py
 
 Inject DQM results for Zeenea datasets from an external source.
 ([Sources](send_dqm_results.py))
+
+### Configuration
+
+In _settings.toml_:
+* tenant: The tenant name. Example: "acme". For very specific use cases, a URL prefix can be provided.
+* dqm_input_file: The path to the CSV input file. The default value is "input/dqm-results.csv".
+
+In _.secrets.toml_:
+* api_secret: A valid Zeenea API Secret with the scope "Manage documentation".
 
 ### Dependencies
 
@@ -170,8 +199,72 @@ The source here is a sample JSON file _input/lineage.json_.
 In real implementation you will fetch the information directly from the source system using API or
 any intermediate file format depending on your context.
 
+### Configuration
+
+In _settings.toml_:
+* tenant: The tenant name. Example: "acme". For very specific use cases, a URL prefix can be provided.
+* lineage_input_file: The path to the JSON input file. The default value is "input/lineage.json".
+
+In _.secrets.toml_:
+* api_secret: A valid Zeenea API Secret with the scope "Manage documentation".
+
 ### Dependencies
 
+* dynaconf: Configuration.
+* httpx: HTTP request.
+
+user.py
+-------
+
+This is a command line tool.
+
+
+### Configuration
+
+In _settings.toml_:
+* tenant: The tenant name. Example: "acme". For very specific use cases, a URL prefix can be provided.
+
+In _.secrets.toml_:
+* scim_api_secret: A valid Zeenea API Secret with the scope "Admin".
+
+You can get the command line arguments documentation with the command line itself with the option `--help`. 
+
+Examples:
+```
+> py user.py --help
+usage: user.py [-h] {create,delete,modify} ...
+
+CLI to manage users with scim as an integration example
+
+options:
+  -h, --help            show this help message and exit
+
+user commands:
+  {create,delete,modify}
+    create              Create a new user
+    delete              Delete an existing user
+    modify              Modify a user
+
+
+> py .\user.py create --help            
+usage: user.py create [-h] -e EMAIL [--given-name GIVEN_NAME] [--family-name FAMILY_NAME] [-g GROUP]
+
+options:
+  -h, --help            show this help message and exit
+  -e EMAIL, --email EMAIL
+                        Email address
+  --given-name GIVEN_NAME
+                        Given name
+  --family-name FAMILY_NAME
+                        Family name
+  -g GROUP, --group GROUP
+                        Group to add the user to
+```
+
+### Dependencies
+
+* argparse: a command line argument parser.
+* scim2_client: A Scim 2.0 client library.
 * dynaconf: Configuration.
 * httpx: HTTP request.
 
@@ -182,15 +275,6 @@ The example files use common modules in the zeenea package for common technical 
 You can look at these modules, reuse them.
 However, there are provided as examples and Zeenea provides no guaranty or support about them.
 
-zeenea.config
--------------
-
-This module use dynaconf to load the documentation from setting files and environment variables.
-
-See the `read_configuration` method for an example.
-
-If you want to use dynaconf for your own project, read their [documentation](https://www.dynaconf.com/).
-
 zeenea.graphql
 --------------
 
@@ -200,12 +284,27 @@ Another valid solution would be to use a GraphQL client library.
 
 The entry point of the module is the `ZeeneaGraphQLClient` class.
 
+zeenea.scim
+-----------
+
+This module provide a small scim 2.0 client restricted to recommended Zeenea patterns primitives.
+It is based on scim2_client library and complete some unimplemented method.
+
+The entry point of the module is the `ZeeneaScimClient` class.
+
+zeenea.config
+-------------
+
+This module use dynaconf to load the documentation from setting files and environment variables.
+
+See the `read_configuration` method for an example.
+
+If you want to use dynaconf for your own project, read their [documentation](https://www.dynaconf.com/).
+
 zeenea.tool
 -----------
 
 For now, it just provides `create_parent`: a function to create the parent folders of an output file if required.
-
-
 
 License
 =======

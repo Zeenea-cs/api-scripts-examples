@@ -65,9 +65,27 @@ class ZeeneaUser:
 
 
 class ZeeneaScimClient:
+    """
+    Zeenea Scim Client.
+
+    This is based on the scim2_client implementation.
+    It limits the actions to the Zeenea recommend patterns.
+
+    It also offers a temporary workaround waiting for the scim2_client to support the modify operation.
+
+    The client should be closed after usage to close the underlying http client.
+    It supports the :keyword:`with` statement, and this is the best option to use it:
+
+    with open_scim_client() as scim_client:
+        ...
+
+    Most action return either the expect response or a :keyword:`ScimError` message.
+
+    """
     def __init__(self, *, tenant: str, api_secret: str):
         """
         Initialize a new ZeeneaScimClient instance.
+
         :param tenant: Zeenea tenant name or URL.
         :param api_secret: Zeenea API Secret.
         """

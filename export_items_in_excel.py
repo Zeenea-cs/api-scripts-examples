@@ -44,7 +44,7 @@ def main():
 
     # Read parameters from the configuration
     excel_file = config.get('excel_output_file', 'output/datasets.xlsx')
-    page_size = config.get('page_size', 2)
+    page_size = config.get('page_size', 20)
 
     # Create ZeeneaGraphQLClient.
     with ZeeneaGraphQLClient(tenant=config.tenant, api_secret=config.api_secret) as client:

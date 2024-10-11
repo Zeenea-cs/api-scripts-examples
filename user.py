@@ -12,6 +12,13 @@ from zeenea.scim import ZeeneaScimClient, ScimError, ScimNotFound, ScimTooMany, 
 
 
 def main() -> None:
+    """
+    Application main function.
+
+    Parse the arguments and then execute the corresponding action.
+
+    :return: None
+    """
     arguments = parse_arguments()
     match arguments.action:
         case 'create':
@@ -26,6 +33,13 @@ def main() -> None:
 
 
 def create_user(arguments: Namespace) -> None:
+    """
+    Execute the "create user" action.
+
+    :param arguments: Arguments object from the command line.
+
+    :return:  None
+    """
     with open_scim_client() as scim_client:
         email: str = arguments.email
         given_name: str = arguments.given_name if 'given_name' in arguments else None
@@ -42,11 +56,18 @@ def create_user(arguments: Namespace) -> None:
 
 
 def modify_user(arguments: Namespace) -> None:
-    given_name: str = arguments.given_name if 'given_name' in arguments else None
-    family_name: str = arguments.family_name if 'family_name' in arguments else None
+    """
+    Execute the "modify user" action.
+
+    :param arguments: Arguments object from the command line.
+
+    :return:  None
+    """
+    new_given_name: str = arguments.given_name if 'given_name' in arguments else None
+    new_family_name: str = arguments.family_name if 'family_name' in arguments else None
     new_groups: set[str] = set(arguments.group) if 'group' in arguments and arguments.group else None
 
-    if given_name is None and family_name is None and new_groups is None:
+    if new_given_name is None and new_family_name is None and new_groups is None:
         print("Nothing to modify")
         sys.exit(0)
 
@@ -54,8 +75,11 @@ def modify_user(arguments: Namespace) -> None:
         match scim_client.find_user(arguments.email):
             case ZeeneaUser() as user:
                 print(f"Found user {user.email} ({user.id})")
-                if given_name is not None or family_name is not None:
-                    modified_user = ZeeneaUser(email=user.email, id=user.id, given_name=given_name, family_name=family_name)
+                if new_given_name is not None or new_family_name is not None:
+                    modified_user = ZeeneaUser(email=user.email,
+                                               id=user.id,
+                                               given_name=new_given_name,
+                                               family_name=new_family_name)
                     match scim_client.modify_user(modified_user):
                         case ZeeneaUser():
                             print(f"Modified user {user.email} ({user.id})")
@@ -73,6 +97,13 @@ def modify_user(arguments: Namespace) -> None:
 
 
 def delete_user(arguments: Namespace) -> None:
+    """
+    Execute the "delete user" action.
+
+    :param arguments: Arguments object from the command line.
+
+    :return:  None
+    """
     with open_scim_client() as scim_client:
         email = arguments.email
         match scim_client.delete_user(email):
@@ -85,7 +116,16 @@ def delete_user(arguments: Namespace) -> None:
                 sys.exit(1)
 
 
-def add_user_to_groups(client: ZeeneaScimClient, user: ZeeneaUser, group_list: list[str]):
+def add_user_to_groups(client: ZeeneaScimClient, user: ZeeneaUser, group_list: list[str]) -> None:
+    """
+    Add a user to a list of groups.
+
+    :param client: the Zeenea Scim Client.
+    :param user: The user to add in groups.
+    :param group_list: The list of the group names.
+
+    :return: None
+    """
     for group_name in group_list:
         match client.group_add_user(group_name, user.id):
             case None:
@@ -94,7 +134,16 @@ def add_user_to_groups(client: ZeeneaScimClient, user: ZeeneaUser, group_list: l
                 print(e, file=sys.stderr)
 
 
-def remove_user_from_groups(client: ZeeneaScimClient, user: ZeeneaUser, group_list: list[str]):
+def remove_user_from_groups(client: ZeeneaScimClient, user: ZeeneaUser, group_list: list[str]) -> None:
+    """
+    Remove a user to a list of groups.
+
+    :param client: the Zeenea Scim Client.
+    :param user: The user to remove from groups.
+    :param group_list: The list of the group names.
+
+    :return: None
+    """
     for group_name in group_list:
         match client.group_remove_user(group_name, user.id):
             case None:
@@ -104,11 +153,21 @@ def remove_user_from_groups(client: ZeeneaScimClient, user: ZeeneaUser, group_li
 
 
 def open_scim_client() -> ZeeneaScimClient:
+    """
+    Open the Zeenea Scim Client.
+
+    :return: A new instance of the Zeenea Scim Client.
+    """
     settings = read_configuration(['tenant', 'scim_api_secret'])
     return ZeeneaScimClient(tenant=settings.tenant, api_secret=settings.scim_api_secret)
 
 
 def parse_arguments() -> argparse.Namespace:
+    """
+    Parse the command line arguments.
+
+    :return: The argparse.Namespace containing the arguments values.
+    """
     main_parser = argparse.ArgumentParser(description="CLI to manage users with scim as an integration example")
     subparsers = main_parser.add_subparsers(title="user commands")
 
