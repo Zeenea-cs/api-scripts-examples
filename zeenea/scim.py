@@ -76,8 +76,9 @@ class ZeeneaScimClient:
     The client should be closed after usage to close the underlying http client.
     It supports the :keyword:`with` statement, and this is the best option to use it:
 
-    with open_scim_client() as scim_client:
-        ...
+    :Example:
+    >>> with open_scim_client() as scim_client:
+    >>>    ...
 
     Most action return either the expect response or a :keyword:`ScimError` message.
 
@@ -118,7 +119,7 @@ class ZeeneaScimClient:
         :param user: User to create.
         :return: The new user (new object with the identifier).
         """
-        scim_user = user.to_scim()
+        scim_user: User = user.to_scim()
         match self.scim_client.create(scim_user, raise_scim_errors=False):
             case User() as new_user:
                 return ZeeneaUser.from_scim(new_user)

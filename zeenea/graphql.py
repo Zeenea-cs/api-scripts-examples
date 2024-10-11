@@ -82,7 +82,7 @@ class GqlError:
         self.code = self.extensions.get("code") if self.extensions else None
 
     def __str__(self) -> str:
-        """Make a """
+        """User friendly formated string representation of the error."""
         locations = f"\n\tlocations: {', '.join(map(str, self.locations))}" if self.locations else ""
         other_ext = [f"{k}: {v}" for k, v in self.extensions.items() if not k == 'code'] if self.extensions else []
         extra = f"\n\textensions:\n{textwrap.indent("\n".join(other_ext), '\t\t')}" if other_ext else ""

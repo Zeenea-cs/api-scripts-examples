@@ -15,6 +15,7 @@ List of the scripts:
 * [send_field_lineage.py](#send_field_lineagepy): Inject Field to Field lineage from an external
   source.
 * [user.py](#userpy): A command line tool to create, modify and delete users.
+* [migrate_contact.py](migrate_contactpy): A command line tool to copy contact-items links of a contact to another one.
 
 Setup
 =====
@@ -216,8 +217,7 @@ In _.secrets.toml_:
 user.py
 -------
 
-This is a command line tool.
-
+This is a command line tool to create, modify or delete users.
 
 ### Configuration
 
@@ -229,6 +229,11 @@ In _.secrets.toml_:
 
 You can get the command line arguments documentation with the command line itself with the option `--help`. 
 
+For create command, options are:
+* `-e`, `--email`: The user email address.
+* `--given-name`: The user given name.
+* `--family-name`: The user family name.
+* `-g`, `--group`: A group to add the user to.
 Examples:
 ```
 > py user.py --help
@@ -267,6 +272,41 @@ options:
 * scim2_client: A Scim 2.0 client library.
 * dynaconf: Configuration.
 * httpx: HTTP request.
+
+migrate_contact.py
+------------------
+
+This is a command line tool to copy the contact-item links of a contact to another one.
+This can help the transmission of a responsibility from a contact to another one.
+This can happen when a person changes or a new user must be created for a person whose email changes.
+
+### Configuration
+
+In _settings.toml_:
+* tenant: The tenant name. Example: "acme". For very specific use cases, a URL prefix can be provided.
+
+In _.secrets.toml_:
+* scim_api_secret: A valid Zeenea API Secret with the scope "Admin".
+
+Command line options:
+* `--from`: Email address of the contact to copy from.
+* `--to`: Email address of the contact to copy to.
+
+You can get the command line arguments documentation with the command line itself with the option `--help`.
+
+### Usage Example
+```
+> py user.py create --email john.doe@actian.com --given-name John --family-name Doe
+> py migrate_contact.py --from jdoe@zeenea.com --to john.doe@actian.com
+> py user.py delete --email john.doe@actian.com
+```
+
+### Dependencies
+
+* argparse: a command line argument parser.
+* dynaconf: Configuration.
+* httpx: HTTP request.
+
 
 Modules
 =======
