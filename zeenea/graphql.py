@@ -3,6 +3,7 @@
 
 import re
 import textwrap
+import time
 from collections.abc import Iterable, Iterator
 from types import TracebackType
 from typing import Self
@@ -174,7 +175,7 @@ class ZeeneaGraphQLClient:
     >>> response = client.request('query my_query($ref: Ref, $count: Int) {...}', ref="item_ref", count=10)
     """
 
-    def __init__(self, *, tenant: str, api_secret: str):
+    def __init__(self, *, tenant: str, api_secret: str, max_retries: int = 3):
         if not re.match('^https?://', tenant):
             url = f"https://{tenant}.zeenea.app/api/catalog/graphql"
         else:
@@ -184,7 +185,8 @@ class ZeeneaGraphQLClient:
             "Accept": "application/json",
             "X-API-SECRET": api_secret
         }
-        self._client = httpx.Client(base_url=url, headers=headers)
+        self.__client: httpx.Client = httpx.Client(base_url=url, headers=headers)
+        self.max_retries: int = max_retries
 
     def request(self, query: str, **variables) -> GqlResponse:
         """
@@ -201,18 +203,37 @@ class ZeeneaGraphQLClient:
             "query": query,
             "variables": variables,
         }
-        response = self._client.post("", json=payload)
-        if response.status_code == 200:
-            return GqlResponse(response.json())
-        else:
-            raise httpx.RequestError(f"{response.status_code=}, {response.json()=}")
+        retries: int = 0
+        while True:
+            self.__throttle(retries)
+            response: httpx.Response = self.__client.post("", json=payload)
+            if response.status_code == 200:
+                return GqlResponse(response.json())
+            elif 500 <= response.status_code < 600:
+                retries += 1
+                if retries >= self.max_retries:
+                    raise httpx.RequestError(
+                        f"Query failed after {retries} attempts status_code={response.status_code}\n\tquery={query}\n\tjson={response.json()}")
+            else:
+                raise httpx.RequestError(
+                    f"Query failed status_code={response.status_code}\n\tquery={query}\n\tjson={response.json()}")
+
+    def __throttle(self, retries: int) -> None:
+        """
+        Throttle a request to the Zeenea GraphQL API.
+        Current implementation waits for 100 ms per retry.
+        A more
+        :param retries: Number of retries.
+        """
+        if retries > 0:
+            time.sleep(retries / 10)
 
     def close(self):
         """Close the internal https client."""
-        self._client.close()
+        self.__client.close()
 
     def __enter__(self) -> Self:
-        self._client.__enter__()
+        self.__client.__enter__()
         return self
 
     def __exit__(self,
@@ -220,7 +241,7 @@ class ZeeneaGraphQLClient:
                  exc_val: BaseException | None = None,
                  exc_tb: TracebackType | None = None,
                  ) -> None:
-        self._client.__exit__(exc_type, exc_val, exc_tb)
+        self.__client.__exit__(exc_type, exc_val, exc_tb)
 
 
 def end_cursor(page_info: dict) -> str | None:
