@@ -1,15 +1,19 @@
 # This work is marked with CC0 1.0 Universal.
 # To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
 
+import logging
 import re
 import textwrap
 import time
+import uuid
 from collections.abc import Iterable, Iterator
 from types import TracebackType
 from typing import Self
 
 import httpx
 
+logger = logging.getLogger(__name__)
+OPERATION_NAME_RE = re.compile('^\\s+(?:query|mutation)\\s+([_A-Za-z][_A-Za-z0-9]*)')
 
 class GqlResponse:
     """
@@ -175,7 +179,7 @@ class ZeeneaGraphQLClient:
     >>> response = client.request('query my_query($ref: Ref, $count: Int) {...}', ref="item_ref", count=10)
     """
 
-    def __init__(self, *, tenant: str, api_secret: str, max_retries: int = 3):
+    def __init__(self, *, tenant: str, api_secret: str, max_retries: int = 3, ):
         if not re.match('^https?://', tenant):
             url = f"https://{tenant}.zeenea.app/api/catalog/graphql"
         else:
@@ -187,10 +191,12 @@ class ZeeneaGraphQLClient:
         }
         self.__client: httpx.Client = httpx.Client(base_url=url, headers=headers)
         self.max_retries: int = max_retries
+        self.uuid = uuid.uuid1()
 
     def request(self, query: str, **variables) -> GqlResponse:
         """
         Send a request to the Zeenea GraphQL API.
+        :param: operation_name: Name of the operation to execute.
         :param query: The request query. Can be either a query or mutation.
         :param variables: Variables to send with the query in the form of a list of key values.
         :return: A GqlResponse object.
@@ -203,20 +209,37 @@ class ZeeneaGraphQLClient:
             "query": query,
             "variables": variables,
         }
+
+        if operation_match := OPERATION_NAME_RE.match(query):
+            operation_name = operation_match.group(1)
+            payload["operationName"] = operation_name
+        else:
+            operation_name = None
+
         retries: int = 0
         while True:
             self.__throttle(retries)
+
+            # Call the request
+            start_time = time.perf_counter_ns()
             response: httpx.Response = self.__client.post("", json=payload)
+
+            # Performance logging
+            duration = time.perf_counter_ns() - start_time
+            logger.info(
+                f"graphql_request_duration {self.uuid} {operation_name=} duration={duration}ns status={response.status_code}")
+
+            # Process
             if response.status_code == 200:
                 return GqlResponse(response.json())
             elif 500 <= response.status_code < 600:
                 retries += 1
                 if retries >= self.max_retries:
                     raise httpx.RequestError(
-                        f"Query failed after {retries} attempts status_code={response.status_code}\n\tquery={query}\n\tjson={response.json()}")
+                        f"Query failed after {retries} attempts status_code={response.status_code} {operation_name=}\n\t{query=}\n\tjson={response.json()}")
             else:
                 raise httpx.RequestError(
-                    f"Query failed status_code={response.status_code}\n\tquery={query}\n\tjson={response.json()}")
+                    f"Query failed status_code={response.status_code} {operation_name=}\n\t{query=}\n\tjson={response.json()}")
 
     def __throttle(self, retries: int) -> None:
         """
@@ -226,7 +249,9 @@ class ZeeneaGraphQLClient:
         :param retries: Number of retries.
         """
         if retries > 0:
-            time.sleep(retries / 10)
+            sleep_duration = retries / 10
+            logger.debug(f"graphql_throttle {self.uuid} duration={sleep_duration}s")
+            time.sleep(sleep_duration)
 
     def close(self):
         """Close the internal https client."""

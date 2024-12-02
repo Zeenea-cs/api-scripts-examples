@@ -4,6 +4,7 @@
 # To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
 
 
+import logging.config
 import json
 import sys
 import textwrap
@@ -33,6 +34,10 @@ def main():
     # Read the configuration.
     config = read_configuration(['tenant', 'api_secret'])
     input_file = config.get('lineage_input_file', 'input/lineage.json')
+
+    # Configure logs
+    if 'log_file' in config:
+        logging.config.fileConfig(config.log_file, disable_existing_loggers=False)
 
     # Create ZeeneaGraphQLClient.
     with ZeeneaGraphQLClient(tenant=config.tenant, api_secret=config.api_secret) as client:

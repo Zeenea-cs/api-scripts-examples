@@ -3,6 +3,7 @@
 # This work is marked with CC0 1.0 Universal.
 # To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
 
+import logging.config
 import csv
 import sys
 import textwrap
@@ -33,6 +34,10 @@ def main():
     # Read the configuration.
     config = read_configuration(['tenant', 'api_secret'])
     input_file = config.get('dqm_input_file', 'input/dqm-results.csv')
+
+    # Configure logs
+    if 'log_file' in config:
+        logging.config.fileConfig(config.log_file, disable_existing_loggers=False)
 
     # Create ZeeneaGraphQLClient.
     with ZeeneaGraphQLClient(tenant=config.tenant, api_secret=config.api_secret) as client:
