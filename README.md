@@ -48,11 +48,13 @@ Unix/Linux commands
 -------------------
 
 ```
-$ python3 -m venv venv
+$ python -m venv .venv
 $ source .venv/bin/activate
 $ pip install -r requirements.txt
 $ python -m zeenea.setup
 ```
+
+NOTE: you may have to use ```python3```instead of ```python``` if using MacOS
 
 Prepare settings
 ----------------
