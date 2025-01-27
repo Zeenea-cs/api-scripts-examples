@@ -39,7 +39,7 @@ Windows commands
 
 ```
 > py -m venv venv
-> venv/Sccipts/activate
+> venv/Scripts/activate
 > py -m pip install -r requirements.txt
 > py -m zeenea.setup
 ```
@@ -109,7 +109,7 @@ Windows commands
 ----------------
 
 ```
-> venv/Sccipts/activate
+> venv/Scripts/activate
 > py export_items_in_excel.py
 ```
 
@@ -117,7 +117,7 @@ Unix/Linux commands
 -------------------
 
 ```
-$ venv/Sccipts/activate
+$ source .venv/bin/activate
 $ python export_items_in_excel.py
 $ ./export_items_in_excel.py
 ```
