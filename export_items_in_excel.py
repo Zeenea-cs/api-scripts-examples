@@ -26,7 +26,7 @@ query find_datasets(
         nodes {
           key
           name
-          domain: property(ref: "domain")
+          sourceName: property(ref: "sourceName")
         }
         pageInfo {
           hasNextPage
@@ -56,7 +56,7 @@ def main():
         filters = [
             {
                 "property": {
-                    "ref": "domain",
+                    "ref": "sourceName",
                     "isEmpty": False
                 }
             }
@@ -102,7 +102,7 @@ def read_page(response: GqlResponse) -> GqlPage[list[dict]] | None:
     if response.data is None:
         return None
     items = response.data['items']
-    item_list = [{'key': item['key'], 'name': item['name'], 'domain': item['domain'][0] if item.get('domain') else None}
+    item_list = [{'key': item['key'], 'name': item['name'], 'sourceName': item['sourceName'][0] if item.get('sourceName') else None}
                  for item in items['nodes']]
     return GqlPage(item_list, items['totalCount'], end_cursor(items['pageInfo']))
 
@@ -118,7 +118,7 @@ def write_to_excel(file: str, item_list: list[dict]) -> None:
     """
     if item_list:
         try:
-            df = pd.DataFrame.from_records(item_list, columns=['key', 'name', 'domain'])
+            df = pd.DataFrame.from_records(item_list, columns=['key', 'name', 'sourceName'])
             create_parent(file)
             df.to_excel(file, index=False, header=True)
             print("Excel file generated")
