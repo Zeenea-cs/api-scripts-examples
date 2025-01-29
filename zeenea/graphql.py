@@ -90,7 +90,7 @@ class GqlError:
         """User friendly formated string representation of the error."""
         locations = f"\n\tlocations: {', '.join(map(str, self.locations))}" if self.locations else ""
         other_ext = [f"{k}: {v}" for k, v in self.extensions.items() if not k == 'code'] if self.extensions else []
-        extra = f"\n\textensions:\n{textwrap.indent("\n".join(other_ext), '\t\t')}" if other_ext else ""
+        extra = f"\n\textensions:\n{textwrap.indent('\n'.join(other_ext), '\t\t')}" if other_ext else ""
         return f"{self.code or 'ERROR'}: {self.message}{locations}{extra}"
 
     def __repr__(self) -> str:
@@ -104,7 +104,7 @@ class GqlErrorList:
         self.errors = list(errors)
 
     def __str__(self) -> str:
-        return f"{len(self.errors)} errors:\n{textwrap.indent("\n".join(map(str, self.errors)), '\t')}"
+        return f"{len(self.errors)} errors:\n{textwrap.indent('\n'.join(map(str, self.errors)), '\t')}"
 
     def __repr__(self) -> str:
         return f"GqlErrorList({len(self.errors)})[{repr(self.errors)}]"
