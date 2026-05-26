@@ -1,0 +1,16 @@
+{
+  "zeenea_url": "https://<tenant>.zeenea.app",
+  "api_key": "your_api_key_here",
+  "connections": [
+    ["connection_1", "Connection_1_Alias"],
+    ["connection_2", "Connection_2_Alias"],
+    ["connection_3", "Connection_3_Alias"]
+  ],
+  "datatypes_to_export": [
+    "datatype_1",
+    "datatype_2",
+    "datatype_3"
+  ],
+  "debug_mode": true,
+  "pagination_size": 20
+}
