@@ -45,6 +45,8 @@ Copy `config.json.example` to `config.json` and fill in your values:
 | `catalog_code` | No | `default` | Target catalog code |
 | `status_delay_in_milliseconds` | No | `3000` | Polling interval while waiting for processing |
 | `debug_mode` | No | `false` | Write detailed request/response logs to `logs/debug_*.log` |
+| `ordered` | No | `false` | Import `DataContract` files first, then `DataProduct` files (two upload cycles) |
+| `anonymise_api_key` | No | `true` | Mask the API key (`X-API-SECRET`) as `***REDACTED***` in debug logs so they can be shared safely |
 
 ### CLI Arguments
 
@@ -60,6 +62,9 @@ usage: import-dcp.py [-h] [--config CONFIG] [--zeenea-url URL] [--api-key KEY]
   --catalog-code CODE     Target catalog code (default: default)
   --status-delay MS       Milliseconds between status poll requests (default: 3000)
   --debug                 Enable debug logging
+  --ordered               Import DataContract files first, then DataProduct files
+  --anonymise-api-key     Mask the API key in debug logs (default: enabled)
+  --no-anonymise-api-key  Log the real API key in debug logs (disable masking)
 ```
 
 ## Usage Examples
@@ -98,6 +103,18 @@ python import-dcp.py --config /path/to/other-config.json
 python import-dcp.py --path ./my-data-products.zip
 ```
 
+### Ordered import (contracts before products)
+
+A data product output port links to a data contract via a `contractId` UUID, so the
+contracts must exist before the products that reference them. With `--ordered`, the tool
+splits the directory by `kind:` and runs two separate upload/process/poll cycles —
+`DataContract` files first, then `DataProduct` files. If the contracts phase reports any
+errors, the products phase is skipped.
+
+```bash
+python import-dcp.py --path ./yamls-sana-corrected --ordered --debug
+```
+
 ### Enabling debug logging
 
 ```bash
@@ -122,3 +139,5 @@ If `path_to_yaml_fileset` points to a directory, the tool automatically zips all
 |---|---|---|
 | `logs/error_<timestamp>.log` | Always | Errors that caused the run to fail |
 | `logs/debug_<timestamp>.log` | Only when `debug_mode` is enabled | Full request/response details for every API call |
+
+> **API key safety:** by default the API key is masked as `***REDACTED***` in debug logs (`anonymise_api_key: true`), so debug logs can be shared with support without exposing the secret. Set `anonymise_api_key` to `false`, or pass `--no-anonymise-api-key`, to log the real key.

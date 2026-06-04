@@ -6,6 +6,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 import time
 import warnings
@@ -19,6 +20,20 @@ warnings.filterwarnings("ignore", category=Warning, module="urllib3")
 
 import requests
 from typing import Optional, Tuple
+
+# Runtime flags populated from config in main(); read by log_request().
+_RUNTIME = {"anonymise_api_key": True}
+
+
+def _redact_headers(headers: Optional[dict]) -> Optional[dict]:
+    """Return a copy of headers with the API secret masked when anonymisation is enabled."""
+    if not headers or not _RUNTIME.get("anonymise_api_key", True):
+        return headers
+    redacted = dict(headers)
+    for key in redacted:
+        if key.lower() == "x-api-secret" and redacted[key]:
+            redacted[key] = "***REDACTED***"
+    return redacted
 
 # ---------------------------------------------------------------------------
 # Logging helpers
@@ -62,7 +77,7 @@ def log_request(debug_logger: logging.Logger, method: str, url: str,
         return
     debug_logger.debug(f">>> {method} {url}")
     if headers:
-        debug_logger.debug(f"    Request headers: {json.dumps(headers, indent=2)}")
+        debug_logger.debug(f"    Request headers: {json.dumps(_redact_headers(headers), indent=2)}")
     if body:
         debug_logger.debug(f"    Request body: {body}")
     if response is not None:
@@ -81,6 +96,8 @@ DEFAULTS = {
     "debug_mode": False,
     "catalog_code": "default",
     "status_delay_in_milliseconds": 3000,
+    "ordered": False,
+    "anonymise_api_key": True,
 }
 
 REQUIRED = ("zeenea_url", "api_key", "path_to_yaml_fileset")
@@ -111,6 +128,8 @@ def apply_cli_overrides(config: dict, args: argparse.Namespace) -> dict:
         "debug_mode": "debug_mode",
         "catalog_code": "catalog_code",
         "status_delay_in_milliseconds": "status_delay_in_milliseconds",
+        "ordered": "ordered",
+        "anonymise_api_key": "anonymise_api_key",
     }
     for arg_name, cfg_key in mapping.items():
         val = getattr(args, arg_name, None)
@@ -163,6 +182,112 @@ def prepare_zip(path_str: str) -> Path:
 
     print(f"ERROR: {path} does not exist or is not a file/directory.", file=sys.stderr)
     sys.exit(1)
+
+
+def detect_kind(path: Path) -> str:
+    """Lightweight scan for a top-level `kind:` value (no YAML dependency)."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                m = re.match(r"\s*kind\s*:\s*[\'\"]?([A-Za-z]+)", line)
+                if m:
+                    return m.group(1)
+    except OSError:
+        pass
+    return ""
+
+
+def _zip_files(files, label: str) -> Path:
+    """Zip the given files into uploads/upload_<label>_<ts>.zip, preserving relative names."""
+    uploads_dir = _SCRIPT_DIR / "uploads"
+    uploads_dir.mkdir(exist_ok=True)
+    zip_path = uploads_dir / f"upload_{label}_{_timestamp()}.zip"
+    common = Path(os.path.commonpath([str(f.parent) for f in files]))
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for yaml_file in files:
+            zf.write(yaml_file, yaml_file.relative_to(common))
+    return zip_path
+
+
+def build_ordered_phases(path_str: str):
+    """
+    Partition a directory of YAML files by `kind` and return ordered phases:
+    DataContract files first, then DataProduct files. Files whose kind cannot be
+    determined are imported in the contracts phase. Returns [(label, zip_path), ...].
+    """
+    path = Path(path_str)
+    if not path.is_dir():
+        print("ERROR: --ordered requires --path to be a directory.", file=sys.stderr)
+        sys.exit(1)
+
+    yaml_files = list(path.rglob("*.yml")) + list(path.rglob("*.yaml"))
+    if not yaml_files:
+        print(f"ERROR: No YAML files found in {path}", file=sys.stderr)
+        sys.exit(1)
+
+    contracts, products, other = [], [], []
+    for yf in yaml_files:
+        kind = detect_kind(yf)
+        if kind == "DataProduct":
+            products.append(yf)
+        elif kind == "DataContract":
+            contracts.append(yf)
+        else:
+            other.append(yf)
+
+    if other:
+        print(f"Note: {len(other)} file(s) had no recognizable `kind:` and will be "
+              f"imported in the contracts phase.")
+
+    phases = []
+    first = contracts + other
+    if first:
+        phases.append(("data contracts", _zip_files(first, "contracts")))
+    if products:
+        phases.append(("data products", _zip_files(products, "products")))
+    if not phases:
+        print("ERROR: Nothing to import.", file=sys.stderr)
+        sys.exit(1)
+    return phases
+
+
+def run_pipeline(zeenea_url: str, api_key: str, zip_path: Path, catalog_code: str,
+                 status_delay: int, debug_logger: logging.Logger,
+                 error_logger: logging.Logger, label: Optional[str] = None) -> dict:
+    """Run the full upload -> process -> poll cycle for a single zip. Returns the result dict."""
+    tag = f" ({label})" if label else ""
+    print(f"\n[1/4] Requesting upload URL{tag}...")
+    upload_info = get_upload_url(zeenea_url, api_key, debug_logger, error_logger)
+    upload_id = upload_info["id"]
+    upload_params = upload_info["uploadParameters"]
+    max_bytes = upload_info.get("maximumFileSizeInBytes", 52428800)
+    print(f"      Upload ID: {upload_id}")
+
+    print(f"\n[2/4] Uploading zip file{tag}...")
+    upload_zip(upload_params, zip_path, max_bytes, debug_logger, error_logger)
+
+    print(f"\n[3/4] Triggering processing{tag}...")
+    trigger_processing(zeenea_url, api_key, upload_id, catalog_code,
+                       debug_logger, error_logger)
+
+    print(f"\n[4/4] Polling status{tag} (every {status_delay}ms)...")
+    final = poll_status(zeenea_url, api_key, upload_id, status_delay,
+                        debug_logger, error_logger)
+    return final.get("result", {}) or {}
+
+
+def report_result(label: Optional[str], result: dict,
+                  error_logger: logging.Logger) -> list:
+    """Print a result summary and return the list of errors."""
+    errors = result.get("errors", [])
+    print(f"\n--- {label or 'Done'} ---")
+    print(f"  Processed : {result.get('processed', 0)}")
+    print(f"  Upserted  : {result.get('upserted', 0)}")
+    print(f"  Errors    : {len(errors)}")
+    for err in errors:
+        error_logger.error(f"Processing error: {err}")
+        print(f"  ! {err}")
+    return errors
 
 
 # ---------------------------------------------------------------------------
@@ -306,6 +431,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--status-delay", dest="status_delay_in_milliseconds",
                         type=int,
                         help="Milliseconds between status poll requests (default: 3000)")
+    parser.add_argument("--ordered", dest="ordered", action="store_true", default=None,
+                        help="Import DataContract files first, then DataProduct files "
+                             "(two separate upload/process cycles)")
+    parser.add_argument("--anonymise-api-key", dest="anonymise_api_key",
+                        action="store_true", default=None,
+                        help="Mask the API key in debug logs (default: enabled)")
+    parser.add_argument("--no-anonymise-api-key", dest="anonymise_api_key",
+                        action="store_false", default=None,
+                        help="Log the real API key in debug logs (disables masking)")
     return parser
 
 
@@ -330,49 +464,37 @@ def main() -> None:
     debug_mode: bool = bool(config["debug_mode"])
     catalog_code: str = config["catalog_code"]
     status_delay: int = int(config["status_delay_in_milliseconds"])
+    ordered: bool = bool(config.get("ordered", False))
+    _RUNTIME["anonymise_api_key"] = bool(config.get("anonymise_api_key", True))
 
     debug_logger, error_logger = setup_logging(debug_mode)
 
     if debug_logger.handlers:
         debug_logger.debug(f"Config: {json.dumps({k: v for k, v in config.items() if k != 'api_key'}, indent=2)}")
 
-    # Prepare zip
+    # Two-phase import: contracts first, then products (so contract UUIDs exist
+    # before the products reference them).
+    if ordered:
+        phases = build_ordered_phases(path_str)
+        print("\nOrdered import: " + " then ".join(label for label, _ in phases))
+        for idx, (label, zip_path) in enumerate(phases, 1):
+            print(f"\n========== Phase {idx}/{len(phases)}: {label} ==========")
+            result = run_pipeline(zeenea_url, api_key, zip_path, catalog_code,
+                                  status_delay, debug_logger, error_logger, label=label)
+            errors = report_result(label, result, error_logger)
+            if errors:
+                if idx < len(phases):
+                    print(f"\nERROR: '{label}' phase reported errors; skipping remaining "
+                          f"phase(s) to avoid unresolved references.", file=sys.stderr)
+                sys.exit(1)
+        return
+
+    # Single-batch import (default)
     zip_path = prepare_zip(path_str)
-
-    # Step 1: Get upload URL
-    print("\n[1/4] Requesting upload URL...")
-    upload_info = get_upload_url(zeenea_url, api_key, debug_logger, error_logger)
-    upload_id: str = upload_info["id"]
-    upload_params: dict = upload_info["uploadParameters"]
-    max_bytes: int = upload_info.get("maximumFileSizeInBytes", 52428800)
-    print(f"      Upload ID: {upload_id}")
-
-    # Step 2: Upload zip
-    print("\n[2/4] Uploading zip file...")
-    upload_zip(upload_params, zip_path, max_bytes, debug_logger, error_logger)
-
-    # Step 3: Trigger processing
-    print("\n[3/4] Triggering processing...")
-    trigger_processing(zeenea_url, api_key, upload_id, catalog_code,
-                       debug_logger, error_logger)
-
-    # Step 4: Poll for completion
-    print(f"\n[4/4] Polling status (every {status_delay}ms)...")
-    final = poll_status(zeenea_url, api_key, upload_id, status_delay,
-                        debug_logger, error_logger)
-
-    result = final.get("result", {})
-    errors = result.get("errors", [])
-
-    print("\n--- Done ---")
-    print(f"  Processed : {result.get('processed', 0)}")
-    print(f"  Upserted  : {result.get('upserted', 0)}")
-    print(f"  Errors    : {len(errors)}")
-
+    result = run_pipeline(zeenea_url, api_key, zip_path, catalog_code,
+                          status_delay, debug_logger, error_logger)
+    errors = report_result(None, result, error_logger)
     if errors:
-        for err in errors:
-            error_logger.error(f"Processing error: {err}")
-            print(f"  ! {err}")
         sys.exit(1)
 
 

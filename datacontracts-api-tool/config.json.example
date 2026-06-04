@@ -4,5 +4,6 @@
   "path_to_yaml_fileset": "/Users/mikis.konstantinou/Sources/Zeenea/zeenea-testing/src/datacontracts-api-tool/yamls",
   "debug_mode": true,
   "catalog_code": "default",
-  "status_delay_in_milliseconds": 2000
+  "status_delay_in_milliseconds": 2000,
+  "anonymise_api_key": true
 }
