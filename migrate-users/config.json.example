@@ -1,0 +1,15 @@
+{
+  "zeenea_url": "https://<tenant>.zeenea.app",
+  "api_key": "your_api_key_here",
+  "csv_path": "/path/to/user_list.csv",
+  "responsibilities": [
+    "data_owner",
+    "$z_data-owner",
+    "$z_owner",
+    "owner renamed",
+    "$z_read",
+    "responsabilite-1",
+    "responsabilite-2",
+    "responsabilite-3"
+  ]
+}

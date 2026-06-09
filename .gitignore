@@ -15,3 +15,12 @@ __pycache__/
 # Intellij Idea
 /.idea/
 *.iml
+
+#Custom
+**/config.json
+test.txt
+**/exports/*
+**/uploads/*
+**/connections/*
+**/logs/*
+**/yamls/*
